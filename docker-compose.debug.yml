@@ -1,0 +1,8 @@
+version: '3.4'
+
+services:
+  brittlestar_c++:
+    image: brittlestar_c++
+    build:
+      context: .
+      dockerfile: Dockerfile

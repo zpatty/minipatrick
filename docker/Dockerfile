@@ -1,8 +1,15 @@
 # Get the base Ubuntu image from Docker Hub
-FROM gcc:latest
+# FROM gcc:10.1
+FROM ubuntu:18.04
 
 # Update apps on the base image
 RUN apt-get -y update && apt-get install -y
+
+RUN apt-get install -y software-properties-common
+
+RUN add-apt-repository ppa:ubuntu-toolchain-r/test
+
+RUN apt-get -y update && apt-get -y install gcc-10 build-essential
 
 # Install the CMake compiler
 RUN apt-get -y install cmake 

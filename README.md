@@ -9,4 +9,4 @@ $chmod+x conda_setup.bash
 
 $./conda_setup.bash
 
-in this folder.
+in the folder that conda_setup.bash is found in.

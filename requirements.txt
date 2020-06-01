@@ -1,13 +1,15 @@
-begins==0.9
 certifi==2020.4.5.1
 cycler==0.10.0
 Cython==0.29.17
-easycython==1.0.7
+flake8==3.8.2
 kiwisolver==1.2.0
 matplotlib==3.1.3
+mccabe==0.6.1
 numpy==1.18.1
 opencv-python==4.2.0.34
 pandas==1.0.3
+pycodestyle==2.6.0
+pyflakes==2.2.0
 pyparsing==2.4.7
 python-dateutil==2.8.1
 pytz==2020.1

@@ -6,6 +6,7 @@ To setup the environment, make the 'conda_setup.bash' file executable, then runi
 To make conda_setup executable, run
 
 $chmod+x conda_setup.bash
+
 $./conda_setup.bash
 
-in this folder.
+in the folder that conda_setup.bash is found in.

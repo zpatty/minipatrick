@@ -15,5 +15,4 @@ python-dateutil==2.8.1
 pytz==2020.1
 scipy==1.4.1
 seaborn==0.10.1
-sip==4.19.13
 six==1.15.0

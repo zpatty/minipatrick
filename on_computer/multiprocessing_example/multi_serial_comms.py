@@ -1,4 +1,4 @@
-#!/home/zach/anaconda3/envs/cython-dev/bin/python3
+#!/home/zpatty/anaconda3/envs/cython-dev/bin/python
 
 # Imports:
 # because we need the command-line arguments
@@ -31,13 +31,15 @@ def tx_to_serial(device_name):
     serial_port.reset_input_buffer()
     serial_port.reset_output_buffer()
     # finishing setup.
-    print("Opened port. Ctrl-C to stop.")
+    # print("Opened port. Ctrl-C to stop.")
+    time.sleep(5)
 
     # If not using ROS, we'll do an infinite loop:
     while True:
         # request something to send
         try:
             to_microcontroller = input("Message to send over serial terminal: ")
+            #print(to_microcontroller)
             # Concatenate a newline so that the microcontroller calls its command parser
             to_microcontroller += '\n'
             serial_port.write(to_microcontroller.encode('UTF-8'))
@@ -117,12 +119,9 @@ def echo_to_terminal(device_name):
 if __name__ == '__main__':
     try:
         # the 0-th arg is the name of the file itself, so we want the 1st.
-        p1 = Process(target=tx_to_serial, args=(sys.argv[1]))
-        p2 = Process(target=echo_to_terminal, args=(sys.argv[1]))
-    	p1.start()
-    	p2.start()
-    	p1.join()
-    	p2.join()
+        p2 = Process(target=echo_to_terminal, args=(sys.argv[1],))
+        p2.start()
+        tx_to_serial(sys.argv[1])
     except KeyboardInterrupt:
         # why is this here?
         pass

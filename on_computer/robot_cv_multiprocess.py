@@ -19,9 +19,34 @@ import imutils
 #     finally:
 #         cam.release()
 
+def update_tracker(box, frame, trackers, fps):
+        # grab the new bounding box coordinates of the object
+        (success, boxes) = trackers.update(frame)
+        # check to see if the tracking was a success
+        # loop over the bounding boxes and draw then on the frame
+        for box in boxes:
+            (x, y, w, h) = [int(v) for v in box]
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        # update the FPS counter
+        fps.update()
+        fps.stop()
+        # initialize the set of information we'll be displaying on
+        # the frame
+        info = [
+            #("Tracker", args["tracker"]),
+            ("Success", "Yes" if success else "No"),
+            ("FPS", "{:.2f}".format(fps.fps())),
+        ]
+        # loop over the info tuples and draw them on our frame
+        (H, W) = frame.shape[:2]
+        for (i, (k, v)) in enumerate(info):
+            text = "{}: {}".format(k, v)
+            cv2.putText(frame, text, (10, H - ((i * 20) + 20)),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+        return [frame, boxes]
 
-def read_frames(queue):
-    # construct the argument parser and parse the arguments
+def parse_tracker():
+        # construct the argument parser and parse the arguments
     ap = argparse.ArgumentParser()
     ap.add_argument("-t", "--tracker", type=str, default="kcf",
         help="OpenCV object tracker type")
@@ -38,13 +63,61 @@ def read_frames(queue):
         "medianflow": cv2.TrackerMedianFlow_create,
         "mosse": cv2.TrackerMOSSE_create
     }
+    return [args, OPENCV_OBJECT_TRACKERS]
+
+def init_tracking(frame, trackers, OPENCV_OBJECT_TRACKERS, args):
+    # select region with the robot
+    bounding_box = cv2.selectROI("Frame", frame, fromCenter=False, showCrosshair=True)
+
+    # crop frame to that region
+    cropped_frame = frame[int(bounding_box[1]):int(bounding_box[1]+bounding_box[3]), 
+        int(bounding_box[0]):int(bounding_box[0]+bounding_box[2])]
+
+    # set number of features to find and create ORB detection object
+    n = 200
+    orb = cv2.ORB_create(nfeatures = n)
+    # find the keypoints with ORB
+    kp = orb.detect(cropped_frame,None)
+    # compute the descriptors with ORB
+    kp, des = orb.compute(cropped_frame, kp)
+    # convert keypoints to numpy
+    points2f = cv2.KeyPoint_convert(kp)
+    # set size of pixels
+    w = 50
+    h = w
+    # convert to bounding box array format
+    boxes = points2f - w
+    n = np.size(boxes, 0)
+    boxes = np.hstack((boxes, np.full((n,2), w)))
+    # consolidate overlapping rectangles (needs to be a tuple)
+    boxes = tuple(map(tuple,boxes))
+    boxes, weights = cv2.groupRectangles(boxes, 1, 0.5)
+    # recomute number of boxes
+    n = np.size(boxes, 0)
+
+    # convert coordinates of boxes back to original frame coordinates
+    boxes[:,0:2] = boxes[:,0:2] + np.hstack((np.full((n,1), int(bounding_box[0])), 
+        np.full((n,1), int(bounding_box[1]))))
+
+    # add a tracker object for each box (needs to be a tuple)
+    boxes = tuple(map(tuple,boxes))
+    for box in boxes:
+        tracker = OPENCV_OBJECT_TRACKERS[args["tracker"]]()
+        trackers.add(tracker, frame, box)
+
+    return [boxes]
+
+def read_frames(queue):
+
+    # parse user specified tracking algorithm
+    args, OPENCV_OBJECT_TRACKERS = parse_tracker()
 
     # initialize opencv multitracker
     trackers = cv2.MultiTracker_create()
 
     # initialize the bounding box coordinates of the object we are going
     # to track
-    box = None
+    boxes = None
 
     pipeline = rs.pipeline()
     config = rs.config()
@@ -57,44 +130,21 @@ def read_frames(queue):
     # initialize the FPS throughput estimator
     fps = None
     while True:
-        # Wait for a coherent pair of frames: depth and color
+        # Can't put this stuff in a function bc pipeline needs to be 
+        # called where it was started
+        # Wait for a coherent frame
         frames = pipeline.wait_for_frames()
-        #depth_frame = frames.get_depth_frame()
         color_frame = frames.get_color_frame()
         if not color_frame:
             continue
         # Convert images to numpy arrays
-        #depth_image = np.asanyarray(depth_frame.get_data())
         frame = np.asanyarray(color_frame.get_data())
-        (H, W) = frame.shape[:2]
-        # resize the frame (so we can process it faster)
-        frame = imutils.resize(frame, width=600)
+        
+        # check if the tracking has been initialized
+        if boxes is not None:
+            frame, boxes = update_tracker(boxes, frame, trackers, fps)
 
-        if box is not None:
-            # grab the new bounding box coordinates of the object
-            (success, boxes) = trackers.update(frame)
-            # check to see if the tracking was a success
-            # loop over the bounding boxes and draw then on the frame
-            for box in boxes:
-                (x, y, w, h) = [int(v) for v in box]
-                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-            # update the FPS counter
-            fps.update()
-            fps.stop()
-            # initialize the set of information we'll be displaying on
-            # the frame
-            info = [
-                ("Tracker", args["tracker"]),
-                ("Success", "Yes" if success else "No"),
-                ("FPS", "{:.2f}".format(fps.fps())),
-            ]
-            # loop over the info tuples and draw them on our frame
-            for (i, (k, v)) in enumerate(info):
-                text = "{}: {}".format(k, v)
-                cv2.putText(frame, text, (10, H - ((i * 20) + 20)),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
-        # if not check:
-        #     break
+        # honestly not quite sure what this does
         if not queue.empty():
             try:
                 queue.get_nowait()
@@ -108,14 +158,8 @@ def read_frames(queue):
 
 
         if key == ord("s"):
-            # select the bounding box of the object we want to track (make
-            # sure you press ENTER or SPACE after selecting the ROI)
-            box = cv2.selectROI("Frame", frame, fromCenter=False,
-                showCrosshair=True)
-            # grab the appropriate object tracker using our dictionary of
-            # OpenCV object tracker objects
-            tracker = OPENCV_OBJECT_TRACKERS[args["tracker"]]()
-            trackers.add(tracker, frame, box)
+            boxes = init_tracking(frame, trackers, OPENCV_OBJECT_TRACKERS, args)
+            
             fps = FPS().start()
 
         # if the `q` key was pressed, break from the loop
@@ -132,6 +176,7 @@ queue = Queue()
 cam_process = Process(target=read_frames, args=(queue,))
 cam_process.start()
 while True:
+    # get frame from the queue
     frame = queue.get()
     # show the output frame
     cv2.imshow("Copy",frame)
@@ -139,5 +184,5 @@ while True:
             cv2.destroyAllWindows()
             cam_process.terminate()  # Don't do this if shared resources
             break
-    time.sleep(1)
+    time.sleep(0.5)
 

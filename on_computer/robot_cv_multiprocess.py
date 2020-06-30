@@ -6,20 +6,13 @@ import cv2
 import pyrealsense2 as rs
 import numpy as np
 import argparse
+from pycpd import RigidRegistration
 from imutils.video import VideoStream
 from imutils.video import FPS
 import imutils
 
-
-# @contextmanager
-# def open_camera(cam_num):
-#     cam = cv2.VideoCapture(cam_num)
-#     try:
-#         yield cam
-#     finally:
-#         cam.release()
-
-def update_tracker(box, frame, trackers, fps):
+# update to get new location of bounding boxes
+def update_tracker(frame, trackers, fps):
         # grab the new bounding box coordinates of the object
         (success, boxes) = trackers.update(frame)
         # check to see if the tracking was a success
@@ -45,6 +38,7 @@ def update_tracker(box, frame, trackers, fps):
                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
         return [frame, boxes]
 
+# parse the input (prob get rid of this)
 def parse_tracker():
         # construct the argument parser and parse the arguments
     ap = argparse.ArgumentParser()
@@ -65,6 +59,7 @@ def parse_tracker():
     }
     return [args, OPENCV_OBJECT_TRACKERS]
 
+# Initialize tracking by specifying bounding boxes of ROI
 def init_tracking(frame, trackers, OPENCV_OBJECT_TRACKERS, args):
     # select region with the robot
     bounding_box = cv2.selectROI("Frame", frame, fromCenter=False, showCrosshair=True)
@@ -101,13 +96,24 @@ def init_tracking(frame, trackers, OPENCV_OBJECT_TRACKERS, args):
 
     # add a tracker object for each box (needs to be a tuple)
     boxes = tuple(map(tuple,boxes))
+    
     for box in boxes:
         tracker = OPENCV_OBJECT_TRACKERS[args["tracker"]]()
         trackers.add(tracker, frame, box)
 
-    return [boxes]
+    return boxes
 
-def read_frames(queue):
+# Function to get the centerpoint of boxes
+def get_centerpoints(boxes):
+
+    boxes = np.array(boxes)
+    #print(boxes[:,0] + 0.5*boxes[:,2])
+    centerpoints = np.array([boxes[:,0] + 0.5*boxes[:,2], boxes[:,1] + 0.5*boxes[:,3]])
+    #print(centerpoints)
+    return centerpoints.transpose()
+
+# Function to execute CV and output to script
+def cv_process(queue):
 
     # parse user specified tracking algorithm
     args, OPENCV_OBJECT_TRACKERS = parse_tracker()
@@ -142,7 +148,16 @@ def read_frames(queue):
         
         # check if the tracking has been initialized
         if boxes is not None:
-            frame, boxes = update_tracker(boxes, frame, trackers, fps)
+            #  = boxes
+            frame, boxes = update_tracker(frame, trackers, fps)
+            new_boxes = boxes
+            # last_centerpoints = get_centerpoints(last_boxes)
+            new_centerpoints = get_centerpoints(new_boxes)
+            reg.X = new_centerpoints
+            #print(reg.X)
+            reg.register()
+            s, R, t = reg.get_registration_parameters()
+            print(R)
 
         # honestly not quite sure what this does
         if not queue.empty():
@@ -159,7 +174,10 @@ def read_frames(queue):
 
         if key == ord("s"):
             boxes = init_tracking(frame, trackers, OPENCV_OBJECT_TRACKERS, args)
-            
+            first_boxes = boxes
+            first_centerpoints = get_centerpoints(first_boxes)
+            #print(first_centerpoints)
+            reg = RigidRegistration(**{'X': first_centerpoints, 'Y': first_centerpoints})
             fps = FPS().start()
 
         # if the `q` key was pressed, break from the loop
@@ -172,17 +190,19 @@ def read_frames(queue):
 
 
 
-queue = Queue()
-cam_process = Process(target=read_frames, args=(queue,))
-cam_process.start()
-while True:
-    # get frame from the queue
-    frame = queue.get()
-    # show the output frame
-    cv2.imshow("Copy",frame)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-            cv2.destroyAllWindows()
-            cam_process.terminate()  # Don't do this if shared resources
-            break
-    time.sleep(0.5)
+# queue = Queue()
+# cam_process = Process(target=cv_process, args=(queue,))
+# cam_process.start()
+# while True:
+#     # get frame from the queue
+#     frame = queue.get()
+#     # show the output frame
+#     cv2.imshow("Copy",frame)
+#     if cv2.waitKey(1) & 0xFF == ord('q'):
+#             cv2.destroyAllWindows()
+#             cam_process.terminate()  # Don't do this if shared resources
+#             break
+#     time.sleep(0.5)
+
+
 

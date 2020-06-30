@@ -11,7 +11,7 @@ from serial_asyncio import open_serial_connection
 from aioconsole import ainput
 
 
-async def main():
+async def run_connection(action_generator):
     # open serial connection through the Streams API and get reader and writer objects
     reader, writer = await open_serial_connection(url='/dev/ttyACM0', baudrate=115200)
 
@@ -19,7 +19,7 @@ async def main():
     print("Opened port. Press reset on Central to initialize echoing. Ctrl-C to stop.")
 
     # execute reader and writer coroutines concurrently
-    await asyncio.gather(read(reader),write(writer))
+    await asyncio.gather(read(reader),write(writer, action_generator))
 
 # Reads from serial, converts all received messages to strings, and prints to terminal
 async def read(reader):
@@ -29,16 +29,26 @@ async def read(reader):
         print(str(line, 'utf-8'))
 
 # Listen to terminal for user input and relay messages to serial
-async def write(writer):
+async def write(writer, action_generator):
 
     # this wait is not functional, it is just to give the user time to reset Central
     await asyncio.sleep(6) 
 
     while True:
         
-        msg = await ainput("Message to send over serial terminal: ")
+        msg = await action_generator.get_action() 
         msg = msg + '\n'
         writer.write(msg.encode('UTF-8'))
 
-# run the program
-asyncio.run(main())
+def serial_process_start(action_generator):
+    asyncio.run(run_connection(action_generator))
+
+class CmdLnActionGenerator:
+        def __init__(self):
+            pass
+        def get_action(self):
+            return ainput("Message to send over serial terminal: ")
+
+if __name__ == '__main__':
+    
+    serial_process_start(CmdLnActionGenerator())

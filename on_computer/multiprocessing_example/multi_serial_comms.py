@@ -59,7 +59,7 @@ import time
 # and iteratively reads lines from it until stopped.
 # frustratingly enough, hardware interrupts are difficult on linux, so we poll the device at some interval
 
-def echo_to_terminal(device_name):
+def echo_to_terminal(device_name, connection, verbose = False):
     # A welcome message
     print("Running serial_rx_echo node with device: " + device_name)
     #print(" and python version:")
@@ -76,8 +76,11 @@ def echo_to_terminal(device_name):
     serial_port.reset_input_buffer()
     serial_port.reset_output_buffer()
     # finishing setup.
-    print("Opened port, now echoing. Ctrl-C to stop.")
-
+    
+    if verbose:
+        print("Opened port, now echoing. Ctrl-C to stop.")
+    else:
+        print("Opened port, NOT echoing. Ctrl-C to stop")
     # Get the current time for file timestamp
     now = time.strftime('%d-%m-%Y_%H:%M:%S')
     # Create filename for csv output
@@ -99,15 +102,18 @@ def echo_to_terminal(device_name):
                 if from_microcontroller[-1] == "\n":
                     # Remove the last character:
                     from_microcontroller = from_microcontroller[0:-2]
+                
                 # Echo the input back to the terminal.
-                print(from_microcontroller)
+                if verbose:
+                    print(from_microcontroller)
+                connection.put(from_microcontroller)
                 
                 # Parse string to find if it is from the IMU and ouput to our csv
-                if from_microcontroller[0:4] == "Cent":
-                    if from_microcontroller[9]=="Q":
-                        with open(filename,"a") as f:
-                            writer = csv.writer(f,delimiter=",")
-                            writer.writerow([from_microcontroller])
+                # if from_microcontroller[0:4] == "Cent":
+                #     if from_microcontroller[9]=="Q":
+                #         with open(filename,"a") as f:
+                #             writer = csv.writer(f,delimiter=",")
+                #             writer.writerow([from_microcontroller])
 
         except KeyboardInterrupt:
             # Nicely shut down this script.

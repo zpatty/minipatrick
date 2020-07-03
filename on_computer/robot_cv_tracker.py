@@ -105,6 +105,8 @@ while True:
         # grab the appropriate object tracker using our dictionary of
         # OpenCV object tracker objects
         tracker = OPENCV_OBJECT_TRACKERS[args["tracker"]]()
+        print(type(box))
+        print(box)
         trackers.add(tracker, frame, box)
         fps = FPS().start()
 

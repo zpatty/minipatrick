@@ -42,7 +42,7 @@ def update_tracker(frame, trackers, fps):
 def parse_tracker():
         # construct the argument parser and parse the arguments
     ap = argparse.ArgumentParser()
-    ap.add_argument("-t", "--tracker", type=str, default="kcf",
+    ap.add_argument("-t", "--tracker", type=str, default="csrt",
         help="OpenCV object tracker type")
     args = vars(ap.parse_args())
 
@@ -78,7 +78,7 @@ def init_tracking(frame, trackers, OPENCV_OBJECT_TRACKERS, args):
     # convert keypoints to numpy
     points2f = cv2.KeyPoint_convert(kp)
     # set size of pixels
-    w = 50
+    w = 75
     h = w
     # convert to bounding box array format
     boxes = points2f - w
@@ -154,7 +154,6 @@ def cv_process(queue):
             # last_centerpoints = get_centerpoints(last_boxes)
             new_centerpoints = get_centerpoints(new_boxes)
             reg.X = new_centerpoints
-            #print(reg.X)
             reg.register()
             s, R, t = reg.get_registration_parameters()
             print(R)
@@ -176,7 +175,7 @@ def cv_process(queue):
             boxes = init_tracking(frame, trackers, OPENCV_OBJECT_TRACKERS, args)
             first_boxes = boxes
             first_centerpoints = get_centerpoints(first_boxes)
-            #print(first_centerpoints)
+            print(first_centerpoints)
             reg = RigidRegistration(**{'X': first_centerpoints, 'Y': first_centerpoints})
             fps = FPS().start()
 
@@ -189,20 +188,20 @@ def cv_process(queue):
 
 
 
-
-# queue = Queue()
-# cam_process = Process(target=cv_process, args=(queue,))
-# cam_process.start()
-# while True:
-#     # get frame from the queue
-#     frame = queue.get()
-#     # show the output frame
-#     cv2.imshow("Copy",frame)
-#     if cv2.waitKey(1) & 0xFF == ord('q'):
-#             cv2.destroyAllWindows()
-#             cam_process.terminate()  # Don't do this if shared resources
-#             break
-#     time.sleep(0.5)
+if __name__ == '__main__':
+    queue = Queue()
+    cam_process = Process(target=cv_process, args=(queue,))
+    cam_process.start()
+    while True:
+        # get frame from the queue
+        frame = queue.get()
+        # show the output frame
+        cv2.imshow("Copy",frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+                cv2.destroyAllWindows()
+                cam_process.terminate()  # Don't do this if shared resources
+                break
+        time.sleep(0.5)
 
 
 

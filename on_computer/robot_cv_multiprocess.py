@@ -73,7 +73,6 @@ def init_tracking(frame, trackers, april_center, OPENCV_OBJECT_TRACKERS, args):
         #     int(bounding_box[0]):int(bounding_box[0]+bounding_box[2])]
         
         pix = np.random.normal(150, 10, 2)
-        print(pix)
         cropped_frame = frame[int(april_center[1]-pix[1]):int(april_center[1]+pix[1]), 
             int(april_center[0]-pix[0]):int(april_center[0]+pix[0])]
         # set number of features to find and create ORB detection object
@@ -205,7 +204,15 @@ def cv_process(queue):
     # Initialize output
     state = []
 
-
+    frame = get_frame(pipeline)
+    boxes = init_tracking(frame, trackers, april_center, OPENCV_OBJECT_TRACKERS, args)
+    first_boxes = boxes
+    new_centerpoints = get_centerpoints(first_boxes)
+    first_centerpoints = new_centerpoints
+    orientation = get_orientation(new_centerpoints, first_centerpoints, april_pose)
+    
+    fps = FPS().start()
+    start_time = time.time()
     # Main Loop
     while True:
 
@@ -235,6 +242,8 @@ def cv_process(queue):
 
         # Put state variables in queue
         queue.put(state)
+
+
         cv2.imshow("Frame", frame)
         key = cv2.waitKey(1) & 0xFF
         # if the 's' key is selected, we are going to "select" a bounding
@@ -242,14 +251,7 @@ def cv_process(queue):
 
 
         if key == ord("s"):
-            boxes = init_tracking(frame, trackers, april_center, OPENCV_OBJECT_TRACKERS, args)
-            first_boxes = boxes
-            new_centerpoints = get_centerpoints(first_boxes)
-            first_centerpoints = new_centerpoints
-            orientation = get_orientation(new_centerpoints, first_centerpoints, april_pose)
-            
-            fps = FPS().start()
-            start_time = time.time()
+            continue
 
         # if the `q` key was pressed, break from the loop
         elif key == ord("q"):

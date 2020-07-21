@@ -1,4 +1,6 @@
-from multiprocessing import Process, Queue
+import sys
+
+from multiprocessing import Process, Queue, Pipe
 
 import robot_cv_multiprocess as vision
 
@@ -6,26 +8,30 @@ import cv2
 
 import time
 
-import serial_comms as serial
+import multi_serial_comms as serial
 
-queue = Queue()
-cam_process = Process(target=vision.cv_process, args=(queue,))
+import cognition_dummy as cognition
+
+sender, receiver = Pipe()
+
+state_queue = Queue()
+cam_process = Process(target=vision.cv_process, args=(state_queue,))
 cam_process.start()
 
-serial_process = Process(target=serial.serial_process_start, daemon=True, args=(serial.CmdLnActionGenerator(),))
+serial_process = Process(target=serial.echo_to_terminal, args=('/dev/ttyACM0',sender))
 serial_process.start()
 
+
 while True:
-    # breakpoint()
+
+    
     # get frame from the queue
-    frame = queue.get()
-    # show the output frame
-    cv2.imshow("Copy",frame)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-            cv2.destroyAllWindows()
-            cam_process.terminate()  # Don't do this if shared resources
-            serial_process.terminate()
-            break
+    state = state_queue.get()
+    print(state)
+    print("now")
     time.sleep(0.5)
+    cognition.dummy('/dev/ttyACM0')
+    receiver.recv()
+
 
 

@@ -8,19 +8,25 @@ def flush(serial_port):
     serial_port.reset_output_buffer()
     time.sleep(0.001)
 
-def send_command(input_string, delay_time):
+def send_command(serial_port, input_string, delay_time):
     to_microcontroller_msg = f'{input_string}\n'
     serial_port.write(to_microcontroller_msg.encode('UTF-8'))
     time.sleep(delay_time/1000)
 
-def execute_gait_cycle(activation_time, cooling_time):
+def execute_gait_cycle(serial_port, activation_time, cooling_time):
     period = activation_time + cooling_time
-    send_command("h 0 3", activation_time)
-    send_command("l 0 3", period/2 - activation_time)
-    send_command("h 1 2", activation_time)
-    send_command("l 1 2", period/2 - activation_time)
+    start_time = time.time()
+    print(time.time() - start_time)
+    send_command(serial_port, "h 0 3", activation_time)
+    print(time.time() - start_time)
+    send_command(serial_port, "l 0 3", period/2 - activation_time)
+    print(time.time() - start_time)
+    send_command(serial_port, "h 1 2", activation_time)
+    print(time.time() - start_time)
+    send_command(serial_port, "l 1 2", period/2 - activation_time)
+    print(time.time() - start_time)
 
-def frog_robot_run(device_name)
+def frog_robot_run(device_name):
     # A welcome message
     print("Running serial_tx_cmdline node with device: " + device_name)
     # create the serial port object, non-exclusive (so others can use it too)
@@ -30,18 +36,17 @@ def frog_robot_run(device_name)
     # finishing setup.
     print("Opened port. Ctrl-C to stop.")
     activation_time = 80
-    frequency = 1
+    frequency = 3
     period = 1000/frequency # milliseconds
     cooling_time = period - activation_time
 
-    try:
-        send_command("p " + activation_time, 0)
+    send_command(serial_port, "p " + str(activation_time), 0)
 
     # If not using ROS, we'll do an infinite loop:
     while True:
         # request something to send
         try:
-            execute_gait_cycle(activation_time, cooling_time)
+            execute_gait_cycle(serial_port, activation_time, cooling_time)
             
         except KeyboardInterrupt:
             # Nicely shut down this script.

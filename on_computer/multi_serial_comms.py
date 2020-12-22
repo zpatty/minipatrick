@@ -35,9 +35,9 @@ def tx_to_serial(device_name):
 """
 
 
-def echo_to_terminal(device_name):
+def echo_to_terminal(device_name,sender):
     print("Running serial_rx_echo node with device: " + device_name)
-    serial_port = serial.Serial(port=device_name, baudrate=115200, timeout=1)
+    serial_port = serial.Serial(port=device_name, baudrate=115200, timeout=1, xonxoff = True)
     flush(serial_port)
     print("Opened port, now echoing. Ctrl-C to stop.")
 
@@ -62,10 +62,15 @@ def echo_to_terminal(device_name):
                 # Echo the input back to the terminal.
                 print(from_microcontroller)
                 # Parse string to find if it is from the IMU and ouput to our csv
-                if from_microcontroller[0:4] == "Cent" and from_microcontroller[9] == "Q":
-                    with open(filename,"a") as f:
-                        writer = csv.writer(f,delimiter=",")
-                        writer.writerow([from_microcontroller])
+                if len(from_microcontroller) > 9:
+                    if from_microcontroller[0:4] == "Cent" and from_microcontroller[9] == "Q":
+                        with open(filename,"a") as f:
+                            writer = csv.writer(f,delimiter=",")
+                            writer.writerow([from_microcontroller])
+
+                    if from_microcontroller[0:4] == "Cent" and from_microcontroller[9:18] == "EMERGENCY":
+                        sender.send([1])
+                        print("sent!")
 
         except KeyboardInterrupt:
             # Nicely shut down this script.

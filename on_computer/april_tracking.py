@@ -105,6 +105,20 @@ def cv_process(queue):
         
         queue.put(state)
 
+        fps.update()
+        fps.stop()
+        # initialize the set of information we'll be displaying on
+        # the frame
+        info = [
+            #("Tracker", args["tracker"]),
+            ("FPS", "{:.2f}".format(fps.fps())),
+        ]
+        # loop over the info tuples and draw them on our frame
+        (H, W) = frame.shape[:2]
+        for (i, (k, v)) in enumerate(info):
+            text = "{}: {}".format(k, v)
+            cv2.putText(frame, text, (10, H - ((i * 20) + 20)),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
 
         
         cv2.imshow("Frame", frame)
@@ -141,7 +155,7 @@ if __name__ == '__main__':
         else:
             pass
         # show the output frame
-        time.sleep(0.01)
+        time.sleep(0.001)
 
 
 

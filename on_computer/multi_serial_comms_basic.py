@@ -1,5 +1,5 @@
-
 #!/usr/bin/python3
+
 import sys
 import serial
 import time
@@ -12,13 +12,23 @@ from multiprocessing import Process
 def flush(serial_port):
     serial_port.reset_input_buffer()
     serial_port.reset_output_buffer()
-    time.sleep(5)
+    time.sleep(2)
+    print("Serial port buffers flushed.")
 
 
 def tx_to_serial(device_name):
     print("Running serial_tx_cmdline node with device: " + device_name)
-    serial_port = serial.Serial(port=device_name, baudrate=115200, timeout=1,
+    successful_open = False
+    while not successful_open:
+        try:
+            serial_port = serial.Serial(port=device_name, baudrate=115200, timeout=1,
                                 exclusive=False)
+            successful_open = True
+        except serial.serialutil.SerialException as se:
+            print("Serial port not ready, received exception:")
+            print(se.strerror)
+            print("Retrying...")
+            time.sleep(2)
     flush(serial_port)
 
     while True:
@@ -40,7 +50,17 @@ def tx_to_serial(device_name):
 
 def echo_to_terminal(device_name):
     print("Running serial_rx_echo node with device: " + device_name)
-    serial_port = serial.Serial(port=device_name, baudrate=115200, timeout=1)
+    # If the device isn't ready, keep trying.
+    successful_open = False
+    while not successful_open:
+        try:
+            serial_port = serial.Serial(port=device_name, baudrate=115200, timeout=1)
+            successful_open = True
+        except serial.serialutil.SerialException as se:
+            print("Serial port not ready, received exception:")
+            print(se.strerror)
+            print("Retrying...")
+            time.sleep(2)
     flush(serial_port)
     print("Opened port, now echoing. Ctrl-C to stop.")
 
@@ -80,8 +100,10 @@ def echo_to_terminal(device_name):
 if __name__ == '__main__':
     print("multi_serial_comms_basic.py\n 2020 Soft Machines Lab\n Basic serial I/O from UART.")
     # p2 = Process(target=echo_to_terminal, args=(sys.argv[1],))
-    # so we can run in vscode more easily: just change here
-    devname = "/dev/ttyACM2"
+    # so we can run in vscode more easily: check if we were given an argument, if not, hardcode
+    devname = "/dev/ttyACM1"
+    if len(sys.argv) > 1:
+        devname = sys.argv[1]
     p2 = Process(target=echo_to_terminal, args=(devname,))
     p2.start()
     tx_to_serial(devname)

@@ -21,6 +21,7 @@ def update_tracker(frame, trackers, fps):
         for box in boxes:
             (x, y, w, h) = [int(v) for v in box]
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
         # update the FPS counter
         fps.update()
         fps.stop()
@@ -64,7 +65,9 @@ def parse_tracker():
 def init_tracking(frame, trackers, april_center, OPENCV_OBJECT_TRACKERS, args):
     # Try again if we don't get enough tracked points
     num_boxes = 0
-    while num_boxes < 2:
+    i = 0
+    while num_boxes < 2 and i <=  50:
+        i = i+1
         # select region with the robot
         # bounding_box = cv2.selectROI("Frame", frame, fromCenter=False, showCrosshair=True)
 
@@ -72,9 +75,12 @@ def init_tracking(frame, trackers, april_center, OPENCV_OBJECT_TRACKERS, args):
         # cropped_frame = frame[int(bounding_box[1]):int(bounding_box[1]+bounding_box[3]), 
         #     int(bounding_box[0]):int(bounding_box[0]+bounding_box[2])]
         
-        pix = np.random.normal(150, 10, 2)
+        pix = np.random.normal(75, 10, 2)
         cropped_frame = frame[int(april_center[1]-pix[1]):int(april_center[1]+pix[1]), 
             int(april_center[0]-pix[0]):int(april_center[0]+pix[0])]
+
+        cv2.imshow("Frame", cropped_frame)
+        cv2.waitKey(100)
         # set number of features to find and create ORB detection object
         n = 200
         orb = cv2.ORB_create(nfeatures = n)
@@ -85,7 +91,7 @@ def init_tracking(frame, trackers, april_center, OPENCV_OBJECT_TRACKERS, args):
         # convert keypoints to numpy
         points2f = cv2.KeyPoint_convert(kp)
         # set size of pixels
-        w = 75
+        w = 25
         h = w
         # convert to bounding box array format
         boxes = points2f - w
@@ -114,6 +120,8 @@ def init_tracking(frame, trackers, april_center, OPENCV_OBJECT_TRACKERS, args):
         tracker = OPENCV_OBJECT_TRACKERS[args["tracker"]]()
         trackers.add(tracker, frame, box)
 
+    if i == 50:
+        boxes = None
     return boxes
 
 # Function to get the centerpoint of boxes
@@ -130,7 +138,7 @@ def get_orientation(new_centerpoints, first_centerpoints, april_pose):
     reg = RigidRegistration(**{'X': new_centerpoints, 'Y': first_centerpoints})
     reg.register()
     s, R, t = reg.get_registration_parameters()
-    orientation = april_pose*R.transpose()
+    orientation = R.transpose()*april_pose#.transpose()
     return orientation
 
 def get_april_pose(pipeline,cfg):
@@ -152,18 +160,29 @@ def get_april_pose(pipeline,cfg):
         # initialize and detect apriltag
         detector = Detector(families='tagStandard41h12')
         detections = detector.detect(grayscale_frame, estimate_tag_pose=True, 
-            camera_params = camera_params, tag_size = 0.022)
+            camera_params = camera_params, tag_size = 0.022/8)
 
-        cv2.imshow("Frame", frame)
+        cv2.imshow("Frame", grayscale_frame)
         cv2.waitKey(1)
 
-    # calculate apriltag pose
-    april_pose = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 0]])*np.array(detections[0].pose_R)
-    april_pose = april_pose[0:2,0:2]
-    april_center = detections[0].center
-    print("Detected!")
+        # calculate apriltag pose
+        if len(detections) == 2:
+            if detections[0].tag_id == 0:
+                robot_tag = detections[0]
+                goal_tag = detections[1]
+            else:
+                robot_tag = detections[1]
+                goal_tag = detections[0]
+            april_pose = np.array(robot_tag.pose_R)
+            april_pose = april_pose[0:2,0:2]
+            april_center = robot_tag.center
+            print("Detected!")
+            goal_center = goal_tag.center
+            print(goal_center)
+        else:
+            detections = []
 
-    return [april_pose, april_center]
+    return [april_pose, april_center, goal_center]
 
 
 def get_frame(pipeline):
@@ -196,7 +215,7 @@ def cv_process(queue):
     cfg = pipeline.start(config)
 
     # Find apriltag orientation
-    april_pose, april_center = get_april_pose(pipeline, cfg)
+    april_pose, april_center, goal_center = get_april_pose(pipeline, cfg)
     
     # Initialize the FPS throughput estimator
     fps = None
@@ -204,8 +223,10 @@ def cv_process(queue):
     # Initialize output
     state = []
 
-    frame = get_frame(pipeline)
-    boxes = init_tracking(frame, trackers, april_center, OPENCV_OBJECT_TRACKERS, args)
+    
+    while boxes == None:
+        frame = get_frame(pipeline)
+        boxes = init_tracking(frame, trackers, april_center, OPENCV_OBJECT_TRACKERS, args)
     first_boxes = boxes
     new_centerpoints = get_centerpoints(first_boxes)
     first_centerpoints = new_centerpoints
@@ -230,9 +251,13 @@ def cv_process(queue):
             # Get new orientation
             new_centerpoints = get_centerpoints(new_boxes)
             orientation = get_orientation(new_centerpoints, first_centerpoints, april_pose)
-            
+            pt1 = np.round(first_centerpoints[0,:])
+            pt2 = np.round(np.matmul(orientation, new_centerpoints[0,:].T))
+            #print(pt2)
+            cv2.arrowedLine(frame, tuple(pt2.astype(int)), tuple(goal_center.astype(int)), (0, 0, 255), 3, 8, 0, 0.1)
+
             # Collect state variables for output
-            state = new_centerpoints, previous_centerpoints, this_time, start_time, orientation, april_pose
+            state = new_centerpoints, previous_centerpoints, this_time, start_time, orientation, april_pose, goal_center
             
         if not queue.empty():
             try:
@@ -271,7 +296,7 @@ if __name__ == '__main__':
         output = queue.get()
         # show the output frame
         if output != []:
-            print(output)
+            print(output[4])
         time.sleep(0.5)
 
 

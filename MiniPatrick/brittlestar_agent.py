@@ -107,8 +107,8 @@ class BrittlestarAgent:
         # the wall time when this function should complete:
         final_time = start_time + wait_until_since_start
         # then loop until we've waited long enough
-        while rospy.get_time() < final_time:
-            rospy.sleep(dt)
+        while time.time() < final_time:
+            time.sleep(dt)
 
     def action_callback(self, action):
         # When a message is received:
@@ -147,7 +147,9 @@ class BrittlestarAgent:
                 
                 #self.serial_port.write("! c\n")
                 # 3) Send the message
-                self.serial_port.write(msg)
+
+                to_microcontroller_msg = f'{msg}\n'
+                self.serial_port.write(to_microcontroller_msg.encode('UTF-8'))
                 # send debugging back to terminal
                 print("Wrote command to serial port: " + msg[:-1] + " @; " + str((time.time() - start_time)*1000))
 

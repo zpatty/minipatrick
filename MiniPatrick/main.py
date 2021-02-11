@@ -12,8 +12,6 @@ import serial
 
 import multi_serial_comms as m_serial
 
-import cognition_dummy as cognition
-
 import one_step_planner
 
 import brittlestar_agent
@@ -31,19 +29,21 @@ def start_robot(device_name):
     serial_port = serial.Serial(port=device_name, baudrate=115200, timeout=1,
                                         exclusive=False)
 
-    goal_state = [500, 500]
     planner = one_step_planner.OneStepPlanner()
-    mini_patrick = brittlestar_agent.BrittlestarAgent
+    mini_patrick = brittlestar_agent.BrittlestarAgent(serial_port)
     while True:
 
         
         # get frame from the queue
-        state = state_queue.get()
-        state = state, goal_state
+        print('looping')
+        state = list(state_queue.get())
+        print(state)
+        #print(state)
         next_action = planner.got_a_state(state)
+        print(next_action)
         mini_patrick.action_callback(next_action)
-        time.sleep(0.1)
-        receiver.recv()
+        #time.sleep(0.1)
+        #receiver.recv()
 
 if __name__ == '__main__':
     try:

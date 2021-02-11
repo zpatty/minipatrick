@@ -37,16 +37,37 @@ def get_april_pose(pipeline, cfg, camera_params, detector):
 
         detections = detector.detect(grayscale_frame, estimate_tag_pose=True, 
             camera_params = camera_params, tag_size = 0.022/8)
-        cv2.imshow("Frame", grayscale_frame)
+        cv2.imshow("Frame", frame)
         cv2.waitKey(1)
 
-        # check if we're detecting 2 apriltags and then get their centers
-        if len(detections) == 2:
+        if len(detections) == 1:
             april1_center = detections[0].center
-            april2_center = detections[1].center
+            april_corners = detections[0].corners
+            line = april_corners[0] - april_corners[1]
+            theta = np.arctan(line[1]/line[0])
         else:
             detections = []
-    return [april1_center, april2_center]
+    return [april1_center, theta]
+
+
+
+# function to display the coordinates of 
+# of the points clicked on the image 
+# we have to use globals for this :(
+x_goal, y_goal = -1, -1
+def click_event(event, x, y, flags, params): 
+    global x_goal, y_goal
+    # checking for left mouse clicks 
+    if event == cv2.EVENT_LBUTTONDOWN: 
+
+        # displaying the coordinates 
+        # on the Shell 
+        print(x, ' ', y) 
+        x_goal = x
+        y_goal = y
+
+
+
 
 
 def get_frame(pipeline):
@@ -71,6 +92,15 @@ def cv_process(queue):
 
     # Find apriltag orientation
     camera_params, detector = init_april_pose(pipeline, cfg)
+
+    goal_state = [x_goal, y_goal]
+    while goal_state == [-1,-1]:
+        frame = get_frame(pipeline)
+        cv2.imshow("Frame", frame)
+        cv2.setMouseCallback("Frame", click_event) 
+        key = cv2.waitKey(1) & 0xFF
+        goal_state = [x_goal, y_goal]
+        
     
     # Initialize the FPS throughput estimator
     fps = None
@@ -89,12 +119,12 @@ def cv_process(queue):
         
 
         this_time = time.time()
-        april1_center, april2_center = get_april_pose(pipeline, cfg, camera_params, detector)
+        april1_center, theta = get_april_pose(pipeline, cfg, camera_params, detector)
         
 
             # Collect state variables for output
-        state = april1_center, april2_center
-            
+        state = [april1_center[0], april1_center[1], theta, goal_state[0], goal_state[1]]
+        #print(state)
         if not queue.empty():
             try:
                 queue.get_nowait()

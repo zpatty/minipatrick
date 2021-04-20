@@ -62,7 +62,12 @@ class BrittlestarAgent:
         # value: string to send to the microcontroller
         print("Get actions called, regenerating actions and transition model.")
 
-        a_limb1 =  {100: "h 2 9", 300: "l 2 9", 301: "h 0 11 3 8", 600: "l 0 11 3 8", 650: "h 0 11 1 10", 950: "l 0 11 1 10", 1800: "h 9 2", 2000: "l 9 2", 2500: "l 0"}
+        #a_limb1 = {100: "h 1 15", 500: "l 1 15", 501: "h 0 2 14 12", 900: "l 0 2 14 12", 901: "h 2 12", 1000: "h 3 13", 1200: "l 2 12 13 3", 2000: "h 5 7 9 11 17 19", 2600: "l 0"}
+        a_limb1 = {100: "h 1 15", 300: "l 1 15", 301: "h 0 2 14 12", 500: "l 0 2 14 12", 501: "h 2 12", 600: "h 3 13", 700: "l 2 12 13 3", 2600: "l 0"}
+        #a_limb1 = {100: "h 1 15", 200: "l 1 15", 301: "h 0 14", 500: "h 2 12", 599: "l 0 2 14 12", 600: "h 2 12", 900: "h 3 13", 1000: "l 2 12 13 3", 1500: "h 1 15", 1700: "l 1 15", 2500: "l 0"}
+
+        #a_limb1 = {100: "h 1 15", 200: "l 1 15", 201: "h 0 2 14 12", 350: "l 0 2 14 12", 351: "h 2 12", 352: "h 3 13", 500: "l 2 12 13 3", 2500: "l 0"}
+
         #, 701: "h 18", 800: "l 18", 801: "h 19 16", 900: "l 19", 901: "h 17", 1000: "l 16 17"
         #a_limb1 =  {100: "h 2", 300: "l 2", 400: "h 0 3", 600: "l 0 3", 601: "h 0 1", 800: "l 0 1", 1100: "h 9", 1300: "l 9", 1400: "h 11 8", 1600: "l 11 8", 1601: "h 11 10", 1800: "l 11 10"}#, 1600: "h 2 9", 1800: "l 2 9"}
         a_limb2 =  BrittlestarAgent.action_remapper(a_limb1, reference_limb_number = 1, new_limb_number = 2)
@@ -75,7 +80,7 @@ class BrittlestarAgent:
         # For now, a list, where each is [dx, dy, dtheta]
         # t_left = {"dx" = -0.1, "dy" = 0.0, "dtheta" = 0.0}
         d = 5 # intended distance to move
-        battery_leg0_angle = 72
+        battery_leg0_angle = 288
         def leg_ang(num):
             theta = (np.pi/180)*(battery_leg0_angle-(360/5)*num) # Assumption leg0 points along the y axis if the ref point for orientation points along x axis
             return theta
@@ -106,9 +111,17 @@ class BrittlestarAgent:
     def sleepUntil(self,start_time, wait_until_since_start, dt):
         # the wall time when this function should complete:
         final_time = start_time + wait_until_since_start
+        print(wait_until_since_start)
         # then loop until we've waited long enough
         while time.time() < final_time:
             time.sleep(dt)
+
+    def send_command(serial_port, input_string, delay_time):
+        to_microcontroller_msg = f'{input_string}'
+        serial_port.write(to_microcontroller_msg.encode('UTF-8'))
+        if delay_time < 0:
+            delay_time = 0
+        time.sleep(delay_time/1000)
 
     def action_callback(self, action):
         # When a message is received:
@@ -130,7 +143,7 @@ class BrittlestarAgent:
                 msg = command[1]
                 command_time = command[0]
                 #print("Attempting to send " + msg + " at time " + str(command_time) + ", current time is " + str((rospy.get_time() - start_time)*1000))
-                self.sleepUntil(start_time,command_time/float(1000), self.timing_resolution)
+                self.sleepUntil(start_time,command_time/float(1000), 0.001)
                 #print("After sleeping current time is: " + str((rospy.get_time() - start_time)*1000))
 
                 # 1) add on the required newline
@@ -148,7 +161,8 @@ class BrittlestarAgent:
                 #self.serial_port.write("! c\n")
                 # 3) Send the message
 
-                to_microcontroller_msg = f'{msg}\n'
+                to_microcontroller_msg = f'{msg}'
+                #print(to_microcontroller_msg)
                 self.serial_port.write(to_microcontroller_msg.encode('UTF-8'))
                 # send debugging back to terminal
                 print("Wrote command to serial port: " + msg[:-1] + " @; " + str((time.time() - start_time)*1000))

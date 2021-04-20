@@ -12,6 +12,9 @@ from imutils.video import FPS
 import imutils
 from pupil_apriltags import Detector
 
+from scipy.spatial.transform import Rotation as Rot
+
+
 
 # takes in intel camera stuff and spits out calibrated parameters and a detector class
 def init_april_pose(pipeline,cfg):
@@ -25,7 +28,17 @@ def init_april_pose(pipeline,cfg):
 
     return camera_params, detector
 
-def get_april_pose(pipeline, cfg, camera_params, detector):
+
+def rot_matrix_to_euler(R):
+    y_rot = np.arcsin(R[2][0])
+    x_rot = np.arccos(R[2][2]/np.cos(y_rot))
+    z_rot = np.arccos(R[0][0]/np.cos(y_rot))
+    y_rot_angle = y_rot *(180/np.pi)
+    x_rot_angle = x_rot *(180/np.pi)
+    z_rot_angle = z_rot *(180/np.pi)
+    return (x_rot_angle,y_rot_angle,z_rot_angle)
+
+def get_april_pose(pipeline, cfg, camera_params, detector, get_size = False):
     # Wait until detecting an apriltag before continuing on
     detections = []
     while detections == []:
@@ -41,12 +54,23 @@ def get_april_pose(pipeline, cfg, camera_params, detector):
         cv2.waitKey(1)
 
         if len(detections) == 1:
+            #print('Detected!')
             april1_center = detections[0].center
             april_corners = detections[0].corners
+            r = Rot.from_matrix(detections[0].pose_R)
+            euler_angles = r.as_euler('zyx', degrees=False)
             line = april_corners[0] - april_corners[1]
-            theta = np.arctan(line[1]/line[0])
+            
+            theta = euler_angles[0]
+            #theta = 2*np.pi - theta
+            if get_size == 1:
+                conversion = float(2.2)/np.linalg.norm(line)
+                print('Conversion = ' + str(conversion))
         else:
             detections = []
+
+        
+
     return [april1_center, theta]
 
 
@@ -81,7 +105,7 @@ def get_frame(pipeline):
 
 # Function to execute CV and output to script
 def cv_process(queue):
-
+    global x_goal, y_goal
     # Set up RealSense Stream
     pipeline = rs.pipeline()
     config = rs.config()
@@ -93,6 +117,7 @@ def cv_process(queue):
     # Find apriltag orientation
     camera_params, detector = init_april_pose(pipeline, cfg)
 
+    print('Click for goal')
     goal_state = [x_goal, y_goal]
     while goal_state == [-1,-1]:
         frame = get_frame(pipeline)
@@ -115,15 +140,16 @@ def cv_process(queue):
 
         # Ask the camera for a frame
         
-        frame = get_frame(pipeline)
         
+        goal_state = [x_goal, y_goal]
 
         this_time = time.time()
         april1_center, theta = get_april_pose(pipeline, cfg, camera_params, detector)
-        
+        frame = get_frame(pipeline)
 
             # Collect state variables for output
-        state = [april1_center[0], april1_center[1], theta, goal_state[0], goal_state[1]]
+        state = [april1_center[0], april1_center[1], theta + np.pi, goal_state[0], goal_state[1], this_time]
+        
         #print(state)
         if not queue.empty():
             try:

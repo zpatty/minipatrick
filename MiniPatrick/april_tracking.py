@@ -65,7 +65,7 @@ def get_april_pose(pipeline, cfg, camera_params, detector, get_size = False):
             #theta = 2*np.pi - theta
             if get_size == 1:
                 conversion = float(2.2)/np.linalg.norm(line)
-                print('Conversion = ' + str(conversion))
+                print('Conversion = ' + str(conversion)) # 0.14046706228241973
         else:
             detections = []
 
@@ -136,6 +136,7 @@ def cv_process(queue):
     fps = FPS().start()
     start_time = time.time()
     # Main Loop
+    april1_center, theta = get_april_pose(pipeline, cfg, camera_params, detector, get_size = True)
     while True:
 
         # Ask the camera for a frame

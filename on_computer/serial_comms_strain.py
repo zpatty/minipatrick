@@ -76,8 +76,20 @@ async def read(reader):
             #time_list = time_list.append(now_time)
             #strain1_list = strain1_list.append(out1)
             
-            ax.scatter(now_time, out1, c = "red")
-            #ax.scatter(now_time, out2, c = "blue")
+            
+
+            if len(line) > 44:
+                meas3 = line[44:44+6]
+                print(meas3)
+                print(twos_comp(int(meas3,16), 24)/(2**19))
+                out3 = twos_comp(int(meas3,16), 24)/(2**19)
+                diff = out1 - out2
+                #ax.scatter(now_time, diff, c = "red")
+                ax.scatter(now_time, out3, c = "blue")
+            else:
+                ax.scatter(now_time, out1, c = "blue")
+
+            
             plt.pause(0.000000000000001)
             with open(filename,"a") as f:
                 writer = csv.writer(f,delimiter=",")

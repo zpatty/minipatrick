@@ -63,7 +63,18 @@ class BrittlestarAgent:
         print("Get actions called, regenerating actions and transition model.")
 
         #a_limb1 = {100: "h 1 15", 500: "l 1 15", 501: "h 0 2 14 12", 900: "l 0 2 14 12", 901: "h 2 12", 1000: "h 3 13", 1200: "l 2 12 13 3", 2000: "h 5 7 9 11 17 19", 2600: "l 0"}
-        a_limb1 = {100: "h 1 15", 300: "l 1 15", 301: "h 0 2 14 12", 500: "l 0 2 14 12", 501: "h 2 12", 600: "h 3 13", 700: "l 2 12 13 3", 2600: "l 0"}
+        # Rowing Gait
+        #a_limb1 = {100: "h 1 15", 300: "l 1 15", 301: "h 0 2 14 12", 500: "l 0 2 14 12", 501: "h 2 12", 600: "h 3 13", 700: "l 2 12 13 3", 2600: "l 0"}
+        
+        # Reverse Rowing
+        #a_limb1 = {100: "h 15 17", 300: "l 15 17", 301: "h 12 14 16 18", 500: "l 12 14 16 18", 501: "h 12 18", 600: "h 13 19", 700: "l 12 13 18 19", 2500: "s"}
+
+        # Alternating
+        off = 600
+        a_limb1 = {100: "h 0 2", 500: "l 0",  1000: "l 2", 1101: "h 1 3", 1200: "l 3", 1400: "l 1", 
+        1201: "h 12 14", 1700: "l 14", 2200: "l 12", 2300: "h 13 15", 2400: "l 13", 2600: "l 15"}
+        # a_limb1 = {100: "h 1", 400: "l 1", 401: "h 0 2", 600: "l 0 2", 601: "h 2 3", 800: "l 2 3", 
+        # 100+off: "h 15", 400+off: "l 15", 401+off: "h 14 12", 600+off: "l 14 12", 601+off: "h 12 13", 800+off: "l 12 13", 2500: "l 0"}
         #a_limb1 = {100: "h 1 15", 200: "l 1 15", 301: "h 0 14", 500: "h 2 12", 599: "l 0 2 14 12", 600: "h 2 12", 900: "h 3 13", 1000: "l 2 12 13 3", 1500: "h 1 15", 1700: "l 1 15", 2500: "l 0"}
 
         #a_limb1 = {100: "h 1 15", 200: "l 1 15", 201: "h 0 2 14 12", 350: "l 0 2 14 12", 351: "h 2 12", 352: "h 3 13", 500: "l 2 12 13 3", 2500: "l 0"}
@@ -80,6 +91,7 @@ class BrittlestarAgent:
         # For now, a list, where each is [dx, dy, dtheta]
         # t_left = {"dx" = -0.1, "dy" = 0.0, "dtheta" = 0.0}
         d = 5 # intended distance to move
+        #battery_leg0_angle = 288
         battery_leg0_angle = 288
         def leg_ang(num):
             theta = (np.pi/180)*(battery_leg0_angle-(360/5)*num) # Assumption leg0 points along the y axis if the ref point for orientation points along x axis
@@ -139,6 +151,8 @@ class BrittlestarAgent:
             start_time = time.time()
             command_sequence =  sorted(actions[action_name].items())
             print("Command sequence: {}".format(command_sequence))
+            safety = "p 600"
+            #self.serial_port.write(safety.encode('UTF-8'))
             for command in command_sequence:
                 msg = command[1]
                 command_time = command[0]

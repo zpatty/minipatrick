@@ -90,8 +90,8 @@ def mayonnaise_instrument(device_name, activation_time = 250, frequency = 1, pha
             # execute_gait_cycle(serial_port, {100: "h 5 19", 300: "l 5 19", 400: "h 4 6 16 18", 700: "l 4 6 16 18", 
             #     701: "h 6 16", 1000: "h 7 17", 1350: "l 6 16", 1450: "l 7 17", 3000: "s"})
             # # normal weighted PATRICK
-            execute_gait_cycle(serial_port, {100: "h 10 16", 300: "l 10 16", 400: "h 9 11 17 19", 700: "l 9 11 17 19", 
-                701: "h 9 19", 1000: "h 8 18", 1350: "l 9 19", 1450: "l 8 18", 3000: "s"})
+            #execute_gait_cycle(serial_port, {1: "h 0", 50: "h 2", 150: "l 0", 201: "h 1", 250: "l 2", 350: "h 3", 400: "l 1", 500: "h 0", 550: "l 3"})
+            execute_gait_cycle(serial_port, {1: "h 0", 100: "h 2", 200: "l 0", 250: "h 1", 300: "l 2", 400: "h 3", 450: "l 1", 550: "h 0", 600: "l 3"})
             # normal weighted PATRICK
             # execute_gait_cycle(serial_port, {100: "h 0 14", 300: "l 0 14", 400: "h 1 3 13 15", 700: "l 1 3 13 15", 
             #     701: "h 3 13", 1000: "h 2 12", 1350: "l 3 13", 1450: "l 2 12", 3000: "s"})

@@ -82,7 +82,7 @@ def mayonnaise_instrument(device_name, activation_time = 250, frequency = 1, pha
     while True:
         # request something to send
         try:
-            execute_gait_cycle(serial_port, {100: "h 1 15", 300: "l 1 15", 301: "h 0 2 14 12", 599: "l 0 2 14 12", 600: "h 2 12", 700: "h 3 13", 900: "l 2 12 13 3", 2500: "s"})
+            #execute_gait_cycle(serial_port, {100: "h 1 15", 300: "l 1 15", 301: "h 0 2 14 12", 599: "l 0 2 14 12", 600: "h 2 12", 700: "h 3 13", 900: "l 2 12 13 3", 2500: "s"})
             # execute_gait_cycle(serial_port, {100: "h 2 18", 300: "l 2 18", 301: "h 1 3 16 19", 600: "l 1 3 16 19", 650: "h 0 1 16 17", 850: "l 0 1 16 17",
             #    851+w: "h 0 1 18 19", 1050+w: "l 0 1 18 19", 1100+w: "h 0 1 18 19", 1300+w: "l 0 1 18 19", 2500+w: "s"})
             # execute_gait_cycle(serial_port, {100: "h 2 18", 300: "l 2 18", 301: "h 1 3 16 19", 600: "l 1 3 16 19", 
@@ -101,6 +101,8 @@ def mayonnaise_instrument(device_name, activation_time = 250, frequency = 1, pha
             #     701: "h 5 17", 1000: "h 7 16", 1350: "l 5 17", 1450: "l 7 16", 3000: "s"})
             # execute_gait_cycle(serial_port, {100: "h 1 15", 200: "l 1 15", 210: "h 0 2 12 14", 350: "l 0 2 12 14", 
             #     351: "h 2 12", 360: "h 3 13", 600: "l 2 3 12 13", 3000: "s"})
+            # pleurocysticoid
+            execute_gait_cycle(serial_port, {0: "h 8", 200: "l 8", 600: "l 0"})
         except KeyboardInterrupt:
             # Nicely shut down this script.
             print("\nShutting down serial_tx_cmdline...")

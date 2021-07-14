@@ -38,7 +38,9 @@ async def run_connection(action_generator, device_name):
 
 # Reads from serial, converts all received messages to strings, and prints to terminal
 async def read(reader):
-    filename = f"strain-output.csv"
+    now = time.strftime('%d-%m-%Y_%H:%M:%S')
+
+    filename = f"strain-output-{now}.csv"
     plt.ion()
     plt.style.use('seaborn')
     plt.style.use('fast')
@@ -52,48 +54,50 @@ async def read(reader):
         line = await reader.readuntil(b'\n')
         line = str(line, 'utf-8')
         #if line[9:12] == "Str":
-        if line[0:3] == "Str":
-            print(line)
-            meas1 = line[9:9+6]
-            print(meas1)
-            print(twos_comp(int(meas1,16), 24)/(2**19))
-            meas2 = line[28:28+6]
-            print(meas2)
-            print(twos_comp(int(meas2,16), 24)/(2**19))
+        #print(line[9:12])
+        if line[9:12] == "Ang":
+            # print(line)
+            # meas1 = line[9:9+6]
+            # print(meas1)
+            # print(twos_comp(int(meas1,16), 24)/(2**19))
+            # meas2 = line[28:28+6]
+            # print(meas2)
+            # print(twos_comp(int(meas2,16), 24)/(2**19))
 
 
-            scale = 16 ## equals to hexadecimal
+            # scale = 16 ## equals to hexadecimal
 
-            num_of_bits = 32
-            #print(bin(int(meas1, scale)))
-            #print(int(meas1, scale)/(2**19))
+            # num_of_bits = 32
+            # #print(bin(int(meas1, scale)))
+            # #print(int(meas1, scale)/(2**19))
 
-            now_time = time.time()
-            out1 = twos_comp(int(meas1,16), 24)/(2**19)
-            out2 = twos_comp(int(meas2,16), 24)/(2**19)
-            #out2 = twos_comp(int(meas2,16), 32)
-            #print('Out 1: ' + str(out1))
-            #time_list = time_list.append(now_time)
-            #strain1_list = strain1_list.append(out1)
+            # now_time = time.time()
+            # out1 = twos_comp(int(meas1,16), 24)/(2**19)
+            # out2 = twos_comp(int(meas2,16), 24)/(2**19)
+            # #out2 = twos_comp(int(meas2,16), 32)
+            # #print('Out 1: ' + str(out1))
+            # #time_list = time_list.append(now_time)
+            # #strain1_list = strain1_list.append(out1)
             
             
 
-            if len(line) > 44:
-                meas3 = line[44:44+6]
-                print(meas3)
-                print(twos_comp(int(meas3,16), 24)/(2**19))
-                out3 = twos_comp(int(meas3,16), 24)/(2**19)
-                diff = out1 - out2
-                #ax.scatter(now_time, diff, c = "red")
-                ax.scatter(now_time, out3, c = "blue")
-            else:
-                ax.scatter(now_time, out1, c = "blue")
+            # if len(line) > 44:
+            #     meas3 = line[44:44+6]
+            #     print(meas3)
+            #     print(twos_comp(int(meas3,16), 24)/(2**19))
+            #     out3 = twos_comp(int(meas3,16), 24)/(2**19)
+            #     diff = out1 - out2
+            #     #ax.scatter(now_time, diff, c = "red")
+            #     ax.scatter(now_time, out3, c = "blue")
+            # else:
+            #     ax.scatter(now_time, out1, c = "blue")
 
             
-            plt.pause(0.000000000000001)
+            # plt.pause(0.000000000000001)
             with open(filename,"a") as f:
-                writer = csv.writer(f,delimiter=",")
-                writer.writerow([out1/(2**19)])
+                writer = csv.writer(f)
+                #print([line[17:]])
+                writer.writerow([line[17:-2]])
             #print('Out 2: ' + str(out2/(2**19)))
 
         else:

@@ -11,6 +11,7 @@ from imutils.video import VideoStream
 from imutils.video import FPS
 import imutils
 from pupil_apriltags import Detector
+import csv
 
 
 # takes in intel camera stuff and spits out calibrated parameters and a detector class
@@ -36,7 +37,7 @@ def get_april_pose(pipeline, cfg, camera_params, detector):
         grayscale_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
         detections = detector.detect(grayscale_frame, estimate_tag_pose=True, 
-            camera_params = camera_params, tag_size = 0.022/8)
+            camera_params = camera_params, tag_size = 0.01/(366-349))
         cv2.imshow("Frame", grayscale_frame)
         cv2.waitKey(1)
 
@@ -93,7 +94,7 @@ def cv_process(queue):
         
 
             # Collect state variables for output
-        state = april1_center, april2_center
+        state = april1_center, april2_center, this_time
             
         if not queue.empty():
             try:
@@ -144,6 +145,10 @@ if __name__ == '__main__':
     queue = Queue()
     cam_process = Process(target=cv_process, args=(queue,))
     cam_process.start()
+
+    now = time.strftime('%d-%m-%Y_%H:%M:%S')
+    filename = f"deformation-test-output_{now}.csv"
+
     while True:
         output = []
         # get output from the queue
@@ -152,10 +157,13 @@ if __name__ == '__main__':
             #print('blocked on get')
             output = queue.get()
             print(output)
+            with open(filename,"a") as f:
+                writer = csv.writer(f,delimiter=",")
+                writer.writerow(output)
         else:
             pass
         # show the output frame
-        time.sleep(0.001)
+        time.sleep(0.0001)
 
 
 

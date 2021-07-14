@@ -75,7 +75,7 @@ def mayonnaise_instrument(device_name, activation_time = 250, frequency = 1, pha
     # phase = 0.5
     period = 1000/frequency # milliseconds
     cooling_time = period - activation_time
-    active = 500
+    active = 300
     send_command(serial_port, "p " + str(activation_time), 0)
     w = 0
     # If not using ROS, we'll do an infinite loop:
@@ -93,7 +93,7 @@ def mayonnaise_instrument(device_name, activation_time = 250, frequency = 1, pha
 
             # MiniPATRICK Tests
             #execute_gait_cycle(serial_port, {1: "h 0", 50: "h 2", 150: "l 0", 201: "h 1", 250: "l 2", 350: "h 3", 400: "l 1", 500: "h 0", 550: "l 3"})
-            execute_gait_cycle(serial_port, {1: "h 0", active: "l 0", 2000: "h 1", 2000 + active: "l 1", 4000: "l 0"})
+            execute_gait_cycle(serial_port, {1: "h 0 2", active: "l 0 2", 2000: "h 1 3", 2000 + active: "l 1 3", 4000: "l 0 2"})
 
             # normal weighted PATRICK
             # execute_gait_cycle(serial_port, {100: "h 0 14", 300: "l 0 14", 400: "h 1 3 13 15", 700: "l 1 3 13 15", 

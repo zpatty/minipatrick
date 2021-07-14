@@ -17,9 +17,9 @@ def execute_gait_cycle(serial_port, activation_time, cooling_time):
     period = activation_time + cooling_time
     start_time = time.time()
     print(time.time() - start_time)
-    send_command(serial_port, "h 3", activation_time)
+    send_command(serial_port, "h 0", activation_time)
     print(time.time() - start_time)
-    send_command(serial_port, "l 3", cooling_time)
+    send_command(serial_port, "l 0", cooling_time)
     print(time.time() - start_time)
 
 def frog_robot_run(device_name):
